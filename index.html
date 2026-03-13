@@ -528,7 +528,15 @@
 <!-- LIGHTBOX -->
 <div id="lightbox" onclick="closeLightbox()">
   <span id="lightboxClose" onclick="closeLightbox()">✕</span>
-  <img id="lightboxImg" src="" alt="" />
+  <img id="lightboxImg" src="" alt="" onclick="event.stopPropagation()" />
+  <a id="lightboxOpenFull" href="#" target="_blank" rel="noopener"
+     onclick="event.stopPropagation()"
+     style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+            background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);
+            color:white;padding:8px 20px;border-radius:20px;font-size:13px;
+            text-decoration:none;backdrop-filter:blur(4px);">
+    🔗 เปิดไฟล์ขนาดเต็ม ↗
+  </a>
 </div>
 
 <!-- TOAST -->
@@ -805,10 +813,10 @@ function viewDetail(id) {
     const images = row.files.filter(f=>isImage(f.name));
     const others = row.files.filter(f=>!isImage(f.name));
     let thumbs = images.map(f=>`
-      <div class="thumb-item" onclick="openLightbox('${f.url}')" title="${escHtml(f.name)}">
+      <div class="thumb-item" onclick="openLightbox('${f.id}')" title="${escHtml(f.name)}">
         <img src="${getThumbUrl(f.id)}" alt="${escHtml(f.name)}"
              loading="lazy"
-             onerror="this.onerror=null;this.src='${f.url}'" />
+             onerror="this.style.display='none';this.parentNode.style.fontSize='32px';this.parentNode.innerText='🖼'" />
       </div>`).join('');
     let links = others.map(f=>`
       <a class="file-link-item" href="${f.url}" target="_blank" rel="noopener">
@@ -841,10 +849,20 @@ function viewDetail(id) {
 // ================================================================
 // LIGHTBOX
 // ================================================================
-function openLightbox(url) {
-  document.getElementById('lightboxImg').src = url;
+function openLightbox(fileId) {
+  // Google Drive direct image URL — โหลดได้ใน <img> ไม่ติด CORS
+  const directUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
+  const imgEl = document.getElementById('lightboxImg');
+  imgEl.src = directUrl;
+  imgEl.onerror = function() {
+    // ถ้า direct URL ถูก block → เปิด tab ใหม่แทน
+    closeLightbox();
+    window.open('https://drive.google.com/file/d/' + fileId + '/view?usp=sharing', '_blank');
+  };
   document.getElementById('lightbox').style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  // เพิ่มปุ่มเปิดแบบเต็ม
+  document.getElementById('lightboxOpenFull').href = 'https://drive.google.com/file/d/' + fileId + '/view?usp=sharing';
 }
 function closeLightbox() {
   document.getElementById('lightbox').style.display = 'none';
