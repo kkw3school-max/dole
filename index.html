@@ -175,7 +175,7 @@
 
   /* THUMBNAIL GRID */
   .attachment-thumb { display:flex; flex-wrap:wrap; gap:10px; }
-  .thumb-item { width:90px; height:90px; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid var(--border); transition:border-color 0.2s,transform 0.2s; background:var(--surface2); display:flex; align-items:center; justify-content:center; position:relative; }
+  .thumb-item { width:90px; height:90px; border-radius:10px; overflow:hidden; cursor:pointer; border:2px solid var(--border); transition:border-color 0.2s,transform 0.2s; background:var(--surface2); display:flex; align-items:center; justify-content:center; position:relative; text-decoration:none; }
   .thumb-item:hover { border-color:var(--primary); transform:scale(1.04); }
   .thumb-item img { width:100%; height:100%; object-fit:cover; }
   .thumb-item .file-thumb-icon { font-size:28px; }
@@ -813,11 +813,15 @@ function viewDetail(id) {
     const images = row.files.filter(f=>isImage(f.name));
     const others = row.files.filter(f=>!isImage(f.name));
     let thumbs = images.map(f=>`
-      <div class="thumb-item" onclick="openLightbox('${f.id}')" title="${escHtml(f.name)}">
+      <a class="thumb-item" 
+         href="https://drive.google.com/uc?export=view&id=${f.id}" 
+         target="_blank" rel="noopener"
+         title="${escHtml(f.name)}"
+         onclick="handleThumbClick(event,'${f.id}')">
         <img src="${getThumbUrl(f.id)}" alt="${escHtml(f.name)}"
              loading="lazy"
-             onerror="this.style.display='none';this.parentNode.style.fontSize='32px';this.parentNode.innerText='🖼'" />
-      </div>`).join('');
+             onerror="this.style.display='none';this.parentNode.innerHTML='<span style=font-size:28px>🖼️</span>'" />
+      </a>`).join('');
     let links = others.map(f=>`
       <a class="file-link-item" href="${f.url}" target="_blank" rel="noopener">
         ${getFileIcon(f.name)} ${escHtml(f.name)} <span style="margin-left:auto;font-size:11px;opacity:0.7;">เปิดไฟล์ ↗</span>
@@ -849,19 +853,24 @@ function viewDetail(id) {
 // ================================================================
 // LIGHTBOX
 // ================================================================
+function handleThumbClick(e, fileId) {
+  // มือถือ → ปล่อยให้ <a href> ทำงานปกติ (เปิด tab ใหม่)
+  if (window.innerWidth < 768 || 'ontouchstart' in window) return;
+  // คอม → ใช้ lightbox แทน
+  e.preventDefault();
+  openLightbox(fileId);
+}
+
 function openLightbox(fileId) {
-  // Google Drive direct image URL — โหลดได้ใน <img> ไม่ติด CORS
   const directUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
   const imgEl = document.getElementById('lightboxImg');
   imgEl.src = directUrl;
   imgEl.onerror = function() {
-    // ถ้า direct URL ถูก block → เปิด tab ใหม่แทน
     closeLightbox();
     window.open('https://drive.google.com/file/d/' + fileId + '/view?usp=sharing', '_blank');
   };
   document.getElementById('lightbox').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  // เพิ่มปุ่มเปิดแบบเต็ม
   document.getElementById('lightboxOpenFull').href = 'https://drive.google.com/file/d/' + fileId + '/view?usp=sharing';
 }
 function closeLightbox() {
